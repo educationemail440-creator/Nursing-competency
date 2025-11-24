@@ -1,0 +1,903 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Activity, 
+  User, 
+  CheckCircle, 
+  LogOut, 
+  Menu, 
+  Battery, 
+  Wifi, 
+  Signal, 
+  ChevronLeft,
+  AlertTriangle,
+  FileText,
+  Thermometer,
+  Trash2,
+  Droplet,
+  Clock,
+  HelpCircle,
+  XCircle,
+  Award,
+  ArrowRight,
+  BookOpen,
+  PlayCircle,
+  ShieldAlert,
+  Scan,
+  Map as MapIcon,
+  Wind,
+  Heart,
+  PowerOff,
+  Mic,
+  Eye,
+  FileCheck,
+  Timer,
+  Hand
+} from 'lucide-react';
+
+// --- Custom Graphics ---
+
+const BridgeLogoSVG = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-xl">
+    <circle cx="50" cy="50" r="50" fill="#0ea5e9" /> 
+    <path d="M -2 55 Q 50 85 102 55 L 102 102 A 50 50 0 0 1 -2 102 Z" fill="#cbd5e1" />
+    <text x="50" y="70" fontSize="60" fontWeight="900" textAnchor="middle" fill="#0f172a" style={{ fontFamily: 'Arial, sans-serif' }}>B</text>
+  </svg>
+);
+
+const WristbandSVG = () => (
+  <svg viewBox="0 0 200 80" className="w-48 h-24 drop-shadow-md">
+    <rect x="10" y="20" width="180" height="40" rx="5" fill="#f1f5f9" stroke="#94a3b8" strokeWidth="2" />
+    <rect x="30" y="25" width="140" height="30" fill="white" />
+    <g fill="#1e293b">
+      <rect x="40" y="30" width="2" height="20" /><rect x="44" y="30" width="4" height="20" />
+      <rect x="50" y="30" width="1" height="20" /><rect x="55" y="30" width="3" height="20" />
+      <rect x="70" y="30" width="5" height="20" /><rect x="80" y="30" width="2" height="20" />
+      <rect x="90" y="30" width="10" height="20" /><rect x="110" y="30" width="4" height="20" />
+    </g>
+    <text x="125" y="45" fontSize="8" fontFamily="monospace" fill="#334155">DOE, JOHN</text>
+    <text x="125" y="55" fontSize="8" fontFamily="monospace" fill="#334155">MRN:12345</text>
+  </svg>
+);
+
+const BloodBagSVG = ({ scannedState }) => (
+  <svg viewBox="0 0 150 220" className="w-40 h-56 mx-auto drop-shadow-lg transition-all duration-300">
+    <path d="M40 10 L110 10 L130 40 L130 180 Q130 210 75 210 Q20 210 20 180 L20 40 Z" fill="#b91c1c" fillOpacity="0.85" stroke="#7f1d1d" strokeWidth="2" />
+    <path d="M25 60 Q75 65 125 60 L125 175 Q125 200 75 200 Q25 200 25 175 Z" fill="#991b1b" />
+    
+    {/* Upper Left */}
+    <rect x="25" y="50" width="45" height="40" fill="white" stroke={scannedState.upperLeft ? "#10b981" : "#cbd5e1"} strokeWidth="2" />
+    <rect x="28" y="55" width="2" height="20" fill="black" />
+    <text x="28" y="85" fontSize="6" fontFamily="sans-serif">UNIT W12345</text>
+    {scannedState.upperLeft && <circle cx="65" cy="55" r="4" fill="#10b981" />}
+    
+    {/* Lower Left */}
+    <rect x="25" y="100" width="45" height="40" fill="white" stroke={scannedState.lowerLeft ? "#10b981" : "#cbd5e1"} strokeWidth="2" />
+    <rect x="28" y="105" width="3" height="20" fill="black" />
+    <text x="28" y="135" fontSize="6" fontFamily="sans-serif">PROD CODE</text>
+    {scannedState.lowerLeft && <circle cx="65" cy="105" r="4" fill="#10b981" />}
+    
+    {/* U Shape */}
+    <rect x="80" y="60" width="45" height="60" fill="white" stroke={scannedState.uShape ? "#10b981" : "#cbd5e1"} strokeWidth="2" />
+    <text x="95" y="90" fontSize="24" fontWeight="bold" fill="#b91c1c" textAnchor="middle">A+</text>
+    {scannedState.uShape && <circle cx="120" cy="65" r="4" fill="#10b981" />}
+    
+    <path d="M75 210 L75 230" stroke="#b91c1c" strokeWidth="4" fill="none" />
+  </svg>
+);
+
+// --- Game Board Component ---
+
+const GameBoard = ({ currentLevel, totalLevels = 8, onClose }) => {
+  const nodes = [
+    { id: 1, x: 20, y: 15, label: "Start" },
+    { id: 2, x: 80, y: 15, label: "Blood Bank" },
+    { id: 3, x: 80, y: 40, label: "Vitals" },
+    { id: 4, x: 20, y: 40, label: "Scanning" },
+    { id: 5, x: 20, y: 65, label: "Setup (18-20G)" },
+    { id: 6, x: 80, y: 65, label: "Transfuse" },
+    { id: 7, x: 80, y: 90, label: "End/Vitals" },
+    { id: 8, x: 35, y: 90, label: "Finish" },
+  ];
+
+  return (
+    <div className="absolute inset-0 bg-slate-900/95 z-50 flex flex-col items-center justify-center p-4 animate-in fade-in zoom-in duration-300">
+      <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl relative overflow-hidden">
+        <button onClick={onClose} className="absolute top-2 right-2 p-2 bg-slate-100 rounded-full hover:bg-slate-200 z-20">
+          <XCircle size={20} />
+        </button>
+        
+        <h2 className="text-center font-bold text-slate-800 mb-4 text-lg border-b pb-2">Transfusion Pathway</h2>
+        
+        <div className="relative w-full h-[400px] bg-red-50 rounded-xl border-2 border-red-100">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-5 pointer-events-none" style={{backgroundImage: 'radial-gradient(#ef4444 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
+
+          {/* Winding Path SVG */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.1))' }}>
+             <path 
+               d="M 70 60 L 250 60 C 280 60 280 90 280 120 L 280 160 C 280 190 250 190 220 190 L 70 190 C 40 190 40 220 40 260 L 40 300 C 40 330 70 330 100 330 L 250 330 C 280 330 280 360 280 380 L 280 400 L 100 400" 
+               fill="none" 
+               stroke="white" 
+               strokeWidth="24" 
+               strokeLinecap="round"
+             />
+             <path 
+               d="M 70 60 L 250 60 C 280 60 280 90 280 120 L 280 160 C 280 190 250 190 220 190 L 70 190 C 40 190 40 220 40 260 L 40 300 C 40 330 70 330 100 330 L 250 330 C 280 330 280 360 280 380 L 280 400 L 100 400" 
+               fill="none" 
+               stroke="#cbd5e1" 
+               strokeWidth="16" 
+               strokeLinecap="round"
+               strokeDasharray="10 5"
+             />
+          </svg>
+
+          {/* Nodes */}
+          {nodes.map((node, idx) => {
+            const isCompleted = currentLevel > node.id;
+            const isCurrent = currentLevel === node.id;
+
+            return (
+              <div 
+                key={node.id}
+                className={`absolute w-14 h-14 -ml-7 -mt-7 flex flex-col items-center justify-center transition-all duration-500
+                  ${isCurrent ? 'scale-110 z-10' : 'scale-100 z-0'}
+                `}
+                style={{ left: `${node.x}%`, top: `${node.y}%` }}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-md border-2 
+                   ${isCompleted ? 'bg-green-500 border-green-600 text-white' : 
+                     isCurrent ? 'bg-blue-500 border-blue-600 text-white animate-bounce' : 
+                     'bg-white border-slate-300 text-slate-300'}
+                `}>
+                   {isCompleted ? <CheckCircle size={18} /> : <span className="font-bold">{node.id}</span>}
+                </div>
+                <span className={`text-[10px] font-bold mt-1 px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap
+                   ${isCurrent ? 'bg-blue-600 text-white' : 'bg-white/80 text-slate-600'}
+                `}>
+                  {node.label}
+                </span>
+              </div>
+            );
+          })}
+
+          {/* Start Icon (Blood Bag) */}
+          <div className="absolute top-[5%] left-[10%] w-12 h-12 opacity-80">
+            <Droplet className="text-red-600 fill-red-100" size={40} />
+          </div>
+          
+          {/* End Icon (Patient) */}
+          <div className="absolute bottom-[5%] left-[15%] w-12 h-12 opacity-80">
+             <User className="text-blue-600 fill-blue-100" size={40} />
+          </div>
+
+        </div>
+        <div className="mt-4 text-center text-sm text-slate-500">
+          Current Stage: <strong>{nodes[currentLevel-1]?.label || 'Complete'}</strong>
+        </div>
+        <PrimaryButton onClick={onClose} className="mt-4">Resume Game</PrimaryButton>
+      </div>
+    </div>
+  );
+};
+
+// --- Quiz Questions Data ---
+const questions = {
+  fluid: {
+    title: "Setup Safety Check",
+    question: "What solution must be used to prime the Y-tubing with red blood cells?",
+    options: ["Normal Saline", "Dextrose 5%", "Lactated Ringers", "Any crystalloid"],
+    correct: 0,
+    rationale: "Normal Saline (0.9% NaCl) is the ONLY compatible solution. Dextrose causes hemolysis (clumping) of cells, and Calcium in LR can cause clotting."
+  },
+  reaction: {
+    title: "Scenario: 10:10 AM",
+    question: "Patient reports itching, chills, and headache. Temp is 100.8°F (up from 98°F). What is your IMMEDIATE action?",
+    options: ["Slow the rate", "Stop transfusion & Notify MD", "Give Benadryl & Continue", "Reassure patient"],
+    correct: 1,
+    rationale: "You must STOP the transfusion immediately. These are signs of a reaction. Keep the IV patent with new tubing/saline and notify the provider."
+  },
+  protocol: {
+    title: "Reaction Protocol",
+    question: "If a reaction occurs, which steps are required?",
+    options: ["Stop transfusion", "Notify Blood Bank", "Return blood bag/tubing", "All of the above"],
+    correct: 3,
+    rationale: "The full protocol includes: Stopping, maintaining IV access, notifying MD/Blood Bank, monitoring vitals, and returning the product for testing."
+  }
+};
+
+// --- Components ---
+
+const ScannerOverlay = ({ isScanning }) => {
+  if (!isScanning) return null;
+  return (
+    <div className="absolute inset-0 pointer-events-none z-50 flex flex-col items-center justify-center overflow-hidden rounded-xl bg-black/10">
+      <div className="w-full h-1 bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.8)] animate-[scan_2s_ease-in-out_infinite]" />
+    </div>
+  );
+};
+
+const DeviceHeader = ({ title, onMapClick }) => (
+  <div className="bg-slate-900 text-white p-2 flex justify-between items-center text-xs select-none rounded-t-lg z-20 relative">
+    <div className="flex gap-1"><Signal size={12} /><span className="font-mono">LTE</span></div>
+    <span className="font-semibold tracking-wide truncate max-w-[150px]">{title}</span>
+    <div className="flex items-center gap-3">
+      <button onClick={onMapClick} className="hover:text-blue-300 transition-colors" title="View Map">
+        <MapIcon size={14} />
+      </button>
+      <div className="flex gap-1"><Battery size={12} /></div>
+    </div>
+  </div>
+);
+
+const PrimaryButton = ({ onClick, children, disabled, variant = "blue", className="" }) => {
+  const styles = {
+    blue: "bg-blue-600 hover:bg-blue-700 text-white",
+    green: "bg-emerald-600 hover:bg-emerald-700 text-white",
+    red: "bg-red-600 hover:bg-red-700 text-white",
+    outline: "border-2 border-slate-300 text-slate-600 hover:bg-slate-50"
+  };
+  return (
+    <button onClick={onClick} disabled={disabled} className={`w-full py-3 px-4 rounded-lg font-bold shadow-sm active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${styles[variant]} ${className}`}>
+      {children}
+    </button>
+  );
+};
+
+// --- Main App ---
+
+export default function App() {
+  const [gameState, setGameState] = useState('HOME_SCREEN');
+  const [scanAnim, setScanAnim] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [showMap, setShowMap] = useState(false);
+  const [isDowntime, setIsDowntime] = useState(false); 
+  
+  // Workflow State
+  const [preCheck, setPreCheck] = useState({ order: false, consent: false, iv: false, education: false });
+  const [vitals, setVitals] = useState({ temp: 98.6, hr: 72, rr: 16, bpSys: 120, bpDia: 80 });
+  const [fifteenMinVitals, setFifteenMinVitals] = useState({ temp: 98.6 });
+  const [endVitals, setEndVitals] = useState({ temp: 98.6 }); // New state for end vitals
+  
+  const [scannedItems, setScannedItems] = useState({ wristband: false, upperLeft: false, lowerLeft: false, patientLabel: false, uShape: false });
+  const [endScannedItems, setEndScannedItems] = useState({ upperLeft: false, lowerLeft: false });
+  
+  // Critical Elements State
+  const [criticalChecks, setCriticalChecks] = useState({
+    periodicCheck: false,
+    ppeRemoved: false,
+    timeLimit: false
+  });
+
+  // Enhanced Co-Sign State for explicit checks
+  const [coSignChecks, setCoSignChecks] = useState({ 
+    bloodMatch: false, 
+    ptMatch: false, 
+    donorMatch: false, 
+    expiry: false,
+    numberMatch: false
+  });
+  const [askMatchVerify, setAskMatchVerify] = useState({ ask: false, match: false, verify: false });
+  
+  // New State for Patient Scan Verification (Pre-Scan)
+  const [preScanVerify, setPreScanVerify] = useState({ askName: false, matchWristband: false, verifyMRN: false });
+  
+  const [coSignData, setCoSignData] = useState({ user: '', pass: '', verified: false });
+  const [transfusionProgress, setTransfusionProgress] = useState(0);
+  const [volumeInfused, setVolumeInfused] = useState('');
+  
+  // Knowledge Check Logic
+  const [questionSolved, setQuestionSolved] = useState({ fluid: false, reaction: false, protocol: false });
+
+  // Determine Level for Game Board
+  const getCurrentLevel = () => {
+    switch(gameState) {
+      case 'HOME_SCREEN': case 'PRE_CHECK': return 1;
+      case 'BRIDGE_LOGIN': case 'BLOOD_PICKUP': return 2;
+      case 'VITALS_START': case 'VITALS_INPUT': return 3;
+      case 'SCANNING_BAG': case 'CO_SIGN': return 4;
+      case 'SETUP_LINE': return 5;
+      case 'TRANSFUSING': case 'FIFTEEN_MIN_CHECK': return 6;
+      case 'END_PROTOCOL': case 'END_PROCEDURE': return 7;
+      case 'HEALTHBRIDGE_DOC': case 'COMPLETE': return 8;
+      default: return 1;
+    }
+  };
+
+  // Timer
+  useEffect(() => {
+    let timer;
+    if (gameState === 'TRANSFUSING') {
+      if (transfusionProgress < 15) {
+        timer = setInterval(() => setTransfusionProgress(p => p + 1), 100);
+      } else if (transfusionProgress === 15 && !questionSolved.reaction) {
+        setGameState('FIFTEEN_MIN_CHECK'); // Pause for reaction question
+      } else if (transfusionProgress < 100) {
+        timer = setInterval(() => setTransfusionProgress(p => p + 1), 50);
+      }
+    }
+    return () => clearInterval(timer);
+  }, [gameState, transfusionProgress, questionSolved.reaction]);
+
+  const handleScan = (key, isEndScan = false) => {
+    setScanAnim(true);
+    setTimeout(() => {
+      setScanAnim(false);
+      if(isEndScan) setEndScannedItems(p => ({ ...p, [key]: true }));
+      else setScannedItems(p => ({ ...p, [key]: true }));
+      setFeedback("Verified");
+      setTimeout(() => setFeedback(""), 1000);
+    }, 1000);
+  };
+
+  // --- Embedded Quiz Component ---
+  const KnowledgeCheck = ({ type, onComplete }) => {
+    const data = questions[type];
+    const [selected, setSelected] = useState(null);
+    const [submitted, setSubmitted] = useState(false);
+    
+    return (
+      <div className="bg-white p-4 rounded-xl border-2 border-indigo-100 shadow-lg animate-in fade-in zoom-in">
+        <div className="flex items-center gap-2 mb-3 text-indigo-700">
+          <ShieldAlert />
+          <h3 className="font-bold uppercase tracking-wider text-xs">{data.title}</h3>
+        </div>
+        <p className="font-bold text-slate-800 mb-4">{data.question}</p>
+        
+        <div className="space-y-2 mb-4">
+          {data.options.map((opt, idx) => {
+            let style = "bg-slate-50 border-slate-200 text-slate-600";
+            if (submitted) {
+               if (idx === data.correct) style = "bg-green-100 border-green-500 text-green-800 font-bold";
+               else if (idx === selected) style = "bg-red-100 border-red-500 text-red-800 opacity-50";
+            } else if (selected === idx) {
+               style = "bg-blue-50 border-blue-500 text-blue-800";
+            }
+            
+            return (
+              <button 
+                key={idx} 
+                onClick={() => !submitted && setSelected(idx)}
+                className={`w-full p-3 text-left border rounded-lg text-sm transition-all ${style}`}
+              >
+                {opt}
+              </button>
+            )
+          })}
+        </div>
+
+        {!submitted && (
+          <PrimaryButton disabled={selected === null} onClick={() => setSubmitted(true)}>Submit Answer</PrimaryButton>
+        )}
+
+        {submitted && (
+          <div className="space-y-3">
+             <div className={`p-3 rounded text-sm ${selected === data.correct ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                <strong>Rationale: </strong>{data.rationale}
+             </div>
+             {selected === data.correct ? (
+                <PrimaryButton variant="green" onClick={onComplete}>Continue Procedure</PrimaryButton>
+             ) : (
+                <button onClick={() => { setSubmitted(false); setSelected(null); }} className="w-full py-3 text-red-600 font-bold hover:bg-red-50 rounded">Try Again (Remediation)</button>
+             )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // --- Screens ---
+
+  const renderHome = () => (
+    <div className="grid grid-cols-2 gap-4 p-6 pt-12">
+      <button onClick={() => setGameState('PRE_CHECK')} className="col-span-2 bg-indigo-500 text-white p-6 rounded-2xl flex flex-col items-center justify-center shadow-lg hover:bg-indigo-600 transition-all">
+        <FileText size={32} className="mb-2"/>
+        <span className="font-bold">Start Competency</span>
+      </button>
+      <button onClick={() => setShowMap(true)} className="col-span-2 bg-white text-slate-600 border-2 border-slate-200 p-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50">
+         <MapIcon size={20} /> <span className="font-bold">View Game Map</span>
+      </button>
+      <div className="p-4 bg-slate-200 rounded-xl text-center text-slate-500 text-xs flex flex-col items-center justify-center">
+        <BridgeLogoSVG />
+        <span className="mt-2 font-bold">Bridge</span>
+      </div>
+      <button onClick={() => setIsDowntime(!isDowntime)} className={`p-4 rounded-xl text-center text-xs flex flex-col items-center justify-center border-2 ${isDowntime ? 'bg-red-100 border-red-300 text-red-700' : 'bg-purple-100 border-transparent text-purple-400'}`}>
+        {isDowntime ? <PowerOff size={32} className="mb-2"/> : <Activity size={32} className="mb-2"/>}
+        <span className="font-bold">{isDowntime ? "DOWNTIME MODE" : "EMR Online"}</span>
+      </button>
+    </div>
+  );
+
+  // ... (Pre-Check, Login, Pickup functions remain unchanged) ...
+  const renderPreCheck = () => (
+    <div className="p-4 space-y-4">
+      <div className="bg-white p-4 rounded-xl shadow-sm border space-y-3">
+        <h3 className="font-bold text-slate-700 border-b pb-2">Pre-Transfusion Checklist</h3>
+        {['Verify Order', 'Consent Signed', 'IV Patent (18-20 G)', 'Patient Education'].map((label, i) => {
+           const keys = ['order', 'consent', 'iv', 'education'];
+           return (
+             <label key={i} className="flex items-center gap-3 p-2 bg-slate-50 rounded cursor-pointer">
+               <input type="checkbox" checked={preCheck[keys[i]]} onChange={() => setPreCheck({...preCheck, [keys[i]]: !preCheck[keys[i]]})} className="w-5 h-5 accent-blue-600"/>
+               <span className="text-sm">{label}</span>
+             </label>
+           )
+        })}
+      </div>
+      <PrimaryButton disabled={!Object.values(preCheck).every(Boolean)} onClick={() => setGameState('BRIDGE_LOGIN')}>Next: Login</PrimaryButton>
+    </div>
+  );
+
+  const renderBridgeLogin = () => (
+    <div className="p-6 flex flex-col justify-center h-full">
+      <div className="w-20 h-20 mx-auto mb-4"><BridgeLogoSVG /></div>
+      <input className="w-full p-3 mb-3 border rounded bg-slate-50" placeholder="Username" defaultValue="RN_User" />
+      <input className="w-full p-3 mb-4 border rounded bg-slate-50" type="password" placeholder="Password" defaultValue="****" />
+      <PrimaryButton onClick={() => setGameState('BLOOD_PICKUP')}>Log On</PrimaryButton>
+    </div>
+  );
+
+  const renderBloodPickup = () => (
+    <div className="p-4 text-center space-y-6">
+      <Droplet size={64} className="text-red-500 mx-auto" />
+      <div className="bg-yellow-50 p-4 rounded text-left text-sm text-yellow-800 border border-yellow-200">
+        <strong>Verify at Blood Bank:</strong><br/>• No Leaks<br/>• No Discoloration<br/>• Not Expired
+      </div>
+      <PrimaryButton onClick={() => setGameState('VITALS_START')}>Return to Unit</PrimaryButton>
+    </div>
+  );
+
+  const renderVitalsStart = () => (
+     <div className="p-4 space-y-4 text-center h-full flex flex-col">
+       <h2 className="font-bold text-slate-800">Patient Verification</h2>
+       
+       {/* Step 1: Verbal Checks (Must complete BEFORE scan) */}
+       {!Object.values(preScanVerify).every(Boolean) ? (
+         <div className="flex-1 space-y-4 animate-in fade-in">
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-left space-y-3">
+               <div className="flex items-center gap-2 text-blue-800 font-bold text-sm border-b border-blue-200 pb-2">
+                  <ShieldAlert size={18} /> <span>Step 1: Verbal Identity Check</span>
+               </div>
+               
+               <label className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${preScanVerify.askName ? 'bg-white border-blue-400 shadow-sm' : 'bg-blue-50/50 border-blue-200'}`}>
+                  <input type="checkbox" checked={preScanVerify.askName} onChange={() => setPreScanVerify({...preScanVerify, askName: !preScanVerify.askName})} className="w-5 h-5 accent-blue-600" />
+                  <div className="flex flex-col text-left">
+                     <span className="text-xs font-bold text-slate-700">ASK:</span>
+                     <span className="text-xs text-slate-600">"Please state your Name & DOB"</span>
+                  </div>
+               </label>
+
+               <label className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${preScanVerify.matchWristband ? 'bg-white border-blue-400 shadow-sm' : 'bg-blue-50/50 border-blue-200'}`}>
+                  <input type="checkbox" checked={preScanVerify.matchWristband} onChange={() => setPreScanVerify({...preScanVerify, matchWristband: !preScanVerify.matchWristband})} className="w-5 h-5 accent-blue-600" />
+                  <div className="flex flex-col text-left">
+                     <span className="text-xs font-bold text-slate-700">MATCH:</span>
+                     <span className="text-xs text-slate-600">Wristband matches verbal info</span>
+                  </div>
+               </label>
+
+               <label className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${preScanVerify.verifyMRN ? 'bg-white border-blue-400 shadow-sm' : 'bg-blue-50/50 border-blue-200'}`}>
+                  <input type="checkbox" checked={preScanVerify.verifyMRN} onChange={() => setPreScanVerify({...preScanVerify, verifyMRN: !preScanVerify.verifyMRN})} className="w-5 h-5 accent-blue-600" />
+                  <div className="flex flex-col text-left">
+                     <span className="text-xs font-bold text-slate-700">VERIFY:</span>
+                     <span className="text-xs text-slate-600">MRN matches Physician Orders</span>
+                  </div>
+               </label>
+            </div>
+            <p className="text-xs text-slate-400">Complete all checks to unlock scanner</p>
+         </div>
+       ) : (
+         // Step 2: Scanning (Only visible after checks)
+         <div className="flex-1 flex flex-col animate-in slide-in-from-right">
+            {!scannedItems.wristband ? (
+               <>
+                 <div className="bg-green-50 p-2 rounded mb-2 text-xs text-green-800 font-bold">✓ Verbal Verification Complete</div>
+                 <div className="relative border-4 border-dashed border-slate-300 rounded-xl p-6 flex-1 flex flex-col items-center justify-center bg-slate-50">
+                    <WristbandSVG />
+                    <div className="mt-6 w-full"><PrimaryButton onClick={() => handleScan('wristband')}>Scan Wristband Now</PrimaryButton></div>
+                    <ScannerOverlay isScanning={scanAnim} />
+                 </div>
+               </>
+            ) : (
+               <div className="flex flex-col items-center justify-center h-full space-y-6">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                     <CheckCircle size={40} className="text-green-600"/>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800">Patient Identified</h3>
+                  <PrimaryButton variant="green" onClick={() => setGameState('VITALS_INPUT')}>Proceed to Vitals</PrimaryButton>
+               </div>
+            )}
+         </div>
+       )}
+     </div>
+  );
+
+  const renderVitalsInput = () => (
+    <div className="p-4 space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="font-bold text-slate-800">Baseline Vitals</h2>
+        <Clock size={16} className="text-slate-400"/>
+      </div>
+      
+      <div className="bg-white p-4 rounded-xl border space-y-4">
+        <div>
+          <label className="text-xs font-bold text-slate-500">Temp (F)</label>
+          <div className="flex items-center gap-2">
+            <Thermometer size={18} className="text-blue-500"/>
+            <input type="range" min="96" max="104" step="0.1" value={vitals.temp} onChange={e=>setVitals({...vitals, temp: e.target.value})} className="w-full accent-blue-600"/>
+            <span className="font-mono font-bold w-12">{vitals.temp}</span>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-bold text-slate-500">Pulse (BPM)</label>
+          <div className="flex items-center gap-2">
+            <Heart size={18} className="text-red-500"/>
+            <input type="range" min="40" max="140" value={vitals.hr} onChange={e=>setVitals({...vitals, hr: e.target.value})} className="w-full accent-red-600"/>
+            <span className="font-mono font-bold w-12">{vitals.hr}</span>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-bold text-slate-500">Respirations (Breaths/min)</label>
+          <div className="flex items-center gap-2">
+            <Wind size={18} className="text-teal-500"/>
+            <input type="range" min="8" max="40" value={vitals.rr} onChange={e=>setVitals({...vitals, rr: e.target.value})} className="w-full accent-teal-600"/>
+            <span className="font-mono font-bold w-12">{vitals.rr}</span>
+          </div>
+        </div>
+        <div>
+           <label className="text-xs font-bold text-slate-500">Blood Pressure (mmHg)</label>
+           <div className="flex items-center gap-2 mt-1">
+             <div className="flex-1 bg-slate-50 p-2 rounded border border-slate-200">
+                <span className="text-[10px] text-slate-400 block">Systolic</span>
+                <input type="number" value={vitals.bpSys} onChange={e=>setVitals({...vitals, bpSys: e.target.value})} className="w-full bg-transparent font-mono font-bold outline-none"/>
+             </div>
+             <span className="text-slate-300 text-xl">/</span>
+             <div className="flex-1 bg-slate-50 p-2 rounded border border-slate-200">
+                <span className="text-[10px] text-slate-400 block">Diastolic</span>
+                <input type="number" value={vitals.bpDia} onChange={e=>setVitals({...vitals, bpDia: e.target.value})} className="w-full bg-transparent font-mono font-bold outline-none"/>
+             </div>
+           </div>
+        </div>
+      </div>
+      <PrimaryButton onClick={() => setGameState('SCANNING_BAG')}>Save & Verify Product</PrimaryButton>
+    </div>
+  );
+
+  const renderScanningBag = () => {
+    const done = scannedItems.upperLeft && scannedItems.lowerLeft && scannedItems.patientLabel && scannedItems.uShape;
+    return (
+      <div className="p-4 flex flex-col h-full">
+         <div className="flex-1 relative flex items-center justify-center bg-slate-100 rounded-xl mb-4">
+            <BloodBagSVG scannedState={scannedItems} />
+            <ScannerOverlay isScanning={scanAnim} />
+         </div>
+         <div className="grid grid-cols-2 gap-2 mb-4">
+            {['upperLeft','lowerLeft','patientLabel','uShape'].map(k => (
+              <button key={k} onClick={() => handleScan(k)} disabled={scannedItems[k]} className={`p-2 text-xs font-bold border rounded ${scannedItems[k] ? 'bg-green-100 border-green-500' : ''}`}>Scan {k}</button>
+            ))}
+         </div>
+         <PrimaryButton disabled={!done} onClick={() => setGameState('CO_SIGN')}>Next: Co-Sign</PrimaryButton>
+      </div>
+    )
+  };
+
+  const renderCoSign = () => (
+    <div className="p-4 space-y-4 h-full flex flex-col">
+       <div className={`p-4 rounded border-l-4 ${isDowntime ? 'bg-red-50 border-red-500 text-red-900' : 'bg-yellow-50 border-yellow-500 text-yellow-900'}`}>
+         <div className="flex items-center gap-2 mb-2">
+            <ShieldAlert size={20} />
+            <h3 className="font-bold uppercase">{isDowntime ? "DOWNTIME PROTOCOL" : "SAFETY CHECK"}</h3>
+         </div>
+         <p className="text-xs leading-relaxed">
+           {isDowntime 
+             ? "Cerner Bridge is OFFLINE. Use STRICT 2-Person Manual Verification." 
+             : "Two-Licensed-Person Verification Required."}
+         </p>
+       </div>
+
+       {isDowntime && (
+         <div className="bg-red-50 border border-red-200 p-3 rounded-lg mb-4 space-y-3">
+            <h4 className="text-red-800 font-bold text-xs uppercase">Manual Verification (Ask, Match, Verify)</h4>
+            
+            <label className={`flex items-center gap-3 p-2 rounded border transition-colors cursor-pointer ${askMatchVerify.ask ? 'bg-red-100 border-red-300' : 'bg-white border-slate-200'}`}>
+               <input type="checkbox" checked={askMatchVerify.ask} onChange={() => setAskMatchVerify({...askMatchVerify, ask: !askMatchVerify.ask})} className="w-4 h-4 accent-red-600" />
+               <div className="flex items-center gap-2 text-xs font-medium">
+                  <Mic size={14} /> <span><strong>ASK:</strong> Patient Name & DOB?</span>
+               </div>
+            </label>
+
+            <label className={`flex items-center gap-3 p-2 rounded border transition-colors cursor-pointer ${askMatchVerify.match ? 'bg-red-100 border-red-300' : 'bg-white border-slate-200'}`}>
+               <input type="checkbox" checked={askMatchVerify.match} onChange={() => setAskMatchVerify({...askMatchVerify, match: !askMatchVerify.match})} className="w-4 h-4 accent-red-600" />
+               <div className="flex items-center gap-2 text-xs font-medium">
+                  <Eye size={14} /> <span><strong>MATCH:</strong> Wristband to Tag?</span>
+               </div>
+            </label>
+
+            <label className={`flex items-center gap-3 p-2 rounded border transition-colors cursor-pointer ${askMatchVerify.verify ? 'bg-red-100 border-red-300' : 'bg-white border-slate-200'}`}>
+               <input type="checkbox" checked={askMatchVerify.verify} onChange={() => setAskMatchVerify({...askMatchVerify, verify: !askMatchVerify.verify})} className="w-4 h-4 accent-red-600" />
+               <div className="flex items-center gap-2 text-xs font-medium">
+                  <FileCheck size={14} /> <span><strong>VERIFY:</strong> Blood Bank ID #?</span>
+               </div>
+            </label>
+         </div>
+       )}
+
+       <div className="flex-1 overflow-y-auto space-y-3">
+          <h4 className="font-bold text-slate-700 text-sm border-b pb-1">Mandatory Verification Checks <span className="text-red-500">*</span></h4>
+          
+          {!isDowntime && (
+            <div className="flex items-center gap-2 text-blue-600 font-bold text-xs p-2 bg-blue-50 rounded">
+               <Mic size={14} /> <span>READ ALOUD to Partner:</span>
+            </div>
+          )}
+
+          <label className="flex items-start gap-3 p-3 bg-white border rounded-lg shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+            <input type="checkbox" className="mt-1 w-5 h-5 accent-blue-600" checked={coSignChecks.bloodMatch} onChange={() => setCoSignChecks({...coSignChecks, bloodMatch: !coSignChecks.bloodMatch})}/>
+            <span className="text-xs font-medium"><strong>1. Match Order:</strong> Blood component matches provider order exactly.</span>
+          </label>
+
+          <label className="flex items-start gap-3 p-3 bg-white border rounded-lg shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+            <input type="checkbox" className="mt-1 w-5 h-5 accent-blue-600" checked={coSignChecks.ptMatch} onChange={() => setCoSignChecks({...coSignChecks, ptMatch: !coSignChecks.ptMatch})}/>
+            <span className="text-xs font-medium"><strong>2. Match Patient:</strong> Patient Name, DOB, MRN match wristband & tag.</span>
+          </label>
+
+          <label className="flex items-start gap-3 p-3 bg-white border rounded-lg shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+            <input type="checkbox" className="mt-1 w-5 h-5 accent-blue-600" checked={coSignChecks.donorMatch} onChange={() => setCoSignChecks({...coSignChecks, donorMatch: !coSignChecks.donorMatch})}/>
+            <span className="text-xs font-medium"><strong>3. Compatibility:</strong> Donor ID, ABO Group, and Rh type match on bag and tag.</span>
+          </label>
+
+          <label className="flex items-start gap-3 p-3 bg-white border rounded-lg shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+            <input type="checkbox" className="mt-1 w-5 h-5 accent-blue-600" checked={coSignChecks.expiry} onChange={() => setCoSignChecks({...coSignChecks, expiry: !coSignChecks.expiry})}/>
+            <span className="text-xs font-medium"><strong>4. Expiration:</strong> Product is NOT expired.</span>
+          </label>
+
+          <label className="flex items-start gap-3 p-3 bg-white border rounded-lg shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">
+            <input type="checkbox" className="mt-1 w-5 h-5 accent-blue-600" checked={coSignChecks.numberMatch} onChange={() => setCoSignChecks({...coSignChecks, numberMatch: !coSignChecks.numberMatch})}/>
+            <span className="text-xs font-medium"><strong>5. ID Number:</strong> Blood Bank ID number matches number on bag.</span>
+          </label>
+       </div>
+
+       {/* Logic: Must check ALL standard boxes AND (if downtime) ALL manual boxes */}
+       {Object.values(coSignChecks).every(Boolean) && (!isDowntime || Object.values(askMatchVerify).every(Boolean)) && (
+         !coSignData.verified ? (
+           <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4">
+             <div className="text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Witness Credentials</div>
+             <input className="w-full p-2 border rounded text-sm" placeholder="Witness Username" onChange={e => setCoSignData({...coSignData, user: e.target.value})} />
+             <input className="w-full p-2 border rounded text-sm" type="password" placeholder="Witness Password" onChange={e => setCoSignData({...coSignData, pass: e.target.value})} />
+             <PrimaryButton disabled={!coSignData.user || !coSignData.pass} onClick={() => setCoSignData({...coSignData, verified: true})}>Sign & Verify</PrimaryButton>
+           </div>
+         ) : (
+           <div className="text-center py-2 animate-in zoom-in">
+             <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-bold">
+               <CheckCircle size={16} /> Verified by {coSignData.user}
+             </div>
+             <div className="mt-4"><PrimaryButton variant="green" onClick={() => setGameState('SETUP_LINE')}>Proceed to Setup</PrimaryButton></div>
+           </div>
+         )
+       )}
+    </div>
+  );
+
+  const renderSetupLine = () => (
+    <div className="p-4 space-y-4">
+      <h2 className="font-bold text-slate-800">Setup Administration</h2>
+      
+      {!questionSolved.fluid ? (
+        <KnowledgeCheck type="fluid" onComplete={() => setQuestionSolved(p => ({...p, fluid: true}))} />
+      ) : (
+        <div className="bg-white p-4 rounded-xl border border-emerald-200 space-y-4 animate-in fade-in">
+           <div className="flex items-center gap-2 text-emerald-700 font-bold border-b pb-2">
+             <CheckCircle size={18} /> <span>Knowledge Verified</span>
+           </div>
+           <div className="space-y-2 text-sm text-slate-600">
+              <div className="flex gap-2"><CheckCircle size={14} className="mt-1"/> Primed Y-tubing with Normal Saline</div>
+              <div className="flex gap-2"><CheckCircle size={14} className="mt-1"/> Connected to Pump</div>
+              <div className="flex gap-2"><CheckCircle size={14} className="mt-1"/> Flushed line</div>
+           </div>
+           <PrimaryButton onClick={() => setGameState('TRANSFUSING')}>START TRANSFUSION</PrimaryButton>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderTransfusing = () => (
+    <div className="p-6 h-full flex flex-col items-center justify-center text-center">
+      <div className="relative w-40 h-40 mb-6">
+        <svg className="w-full h-full transform -rotate-90">
+          <circle cx="80" cy="80" r="70" fill="none" stroke="#e2e8f0" strokeWidth="10" />
+          <circle cx="80" cy="80" r="70" fill="none" stroke="#ef4444" strokeWidth="10" strokeDasharray="440" strokeDashoffset={440 - (440 * transfusionProgress) / 100} strokeLinecap="round" />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center font-bold text-2xl">{transfusionProgress}%</span>
+      </div>
+      <p className="animate-pulse text-blue-600 font-bold">Transfusing...</p>
+      {transfusionProgress === 100 && <div className="mt-4 w-full"><PrimaryButton onClick={() => setGameState('END_PROTOCOL')}>Transfusion Complete</PrimaryButton></div>}
+    </div>
+  );
+
+  const renderFifteenMinCheck = () => (
+    <div className="p-4 space-y-4">
+      <h2 className="font-bold text-red-700 flex items-center gap-2"><Clock /> 15 Minute Assessment</h2>
+      
+      {!questionSolved.reaction ? (
+        <KnowledgeCheck type="reaction" onComplete={() => setQuestionSolved(p => ({...p, reaction: true}))} />
+      ) : (
+         <div className="bg-white p-4 rounded-xl border space-y-4 animate-in fade-in">
+            <div className="p-3 bg-emerald-50 text-emerald-800 rounded text-sm font-bold text-center">
+              Correct. We will simulate a normal reaction-free course.
+            </div>
+            
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <div className="flex justify-between items-end mb-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">15-min Temperature</label>
+                <div className="flex items-baseline gap-1">
+                   <span className="text-2xl font-bold text-blue-600">{fifteenMinVitals.temp}</span>
+                   <span className="text-sm text-slate-400 font-medium">°F</span>
+                </div>
+              </div>
+              
+              <input 
+                type="range" 
+                min="96.0" 
+                max="104.0" 
+                step="0.1" 
+                value={fifteenMinVitals.temp} 
+                onChange={(e) => setFifteenMinVitals({...fifteenMinVitals, temp: e.target.value})}
+                className="w-full accent-blue-600 h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer" 
+              />
+              
+              <div className="flex justify-between mt-2 text-[10px] font-bold text-slate-400 uppercase">
+                 <span>Low (96°)</span>
+                 <span className="text-emerald-500 flex items-center gap-1"><CheckCircle size={10}/> Normal (98.6°)</span>
+                 <span>High (104°)</span>
+              </div>
+            </div>
+
+            <div className="bg-white border border-blue-100 p-3 rounded text-sm text-blue-700 flex items-center gap-2">
+               <Eye size={16} /> <span>Check periodically every 30 mins as per policy</span>
+            </div>
+
+            <PrimaryButton onClick={() => setGameState('TRANSFUSING')}>Record & Resume Monitoring</PrimaryButton>
+         </div>
+      )}
+    </div>
+  );
+
+  const renderEndProtocol = () => (
+    <div className="p-4 space-y-4">
+      <h2 className="font-bold text-slate-800">End Transfusion Protocol</h2>
+      
+      {!questionSolved.protocol ? (
+        <KnowledgeCheck type="protocol" onComplete={() => setQuestionSolved(p => ({...p, protocol: true}))} />
+      ) : (
+        <div className="space-y-4 animate-in fade-in">
+           <div className="bg-white p-4 rounded-xl border space-y-4">
+              <h3 className="font-bold text-sm text-slate-500 uppercase">Final Scan (Close Loop)</h3>
+              <div className="grid grid-cols-2 gap-2">
+                 <button onClick={() => handleScan('upperLeft', true)} disabled={endScannedItems.upperLeft || scanAnim} className={`p-3 border rounded font-bold text-xs ${endScannedItems.upperLeft ? 'bg-green-100 border-green-500' : ''}`}>Scan Unit #</button>
+                 <button onClick={() => handleScan('lowerLeft', true)} disabled={endScannedItems.lowerLeft || scanAnim} className={`p-3 border rounded font-bold text-xs ${endScannedItems.lowerLeft ? 'bg-green-100 border-green-500' : ''}`}>Scan Prod Code</button>
+              </div>
+           </div>
+           <PrimaryButton disabled={!endScannedItems.upperLeft || !endScannedItems.lowerLeft} onClick={() => setGameState('END_PROCEDURE')}>Post-Transfusion Tasks</PrimaryButton>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderEndProcedure = () => (
+    <div className="p-4 space-y-4">
+      <h2 className="font-bold text-slate-800">Post-Transfusion</h2>
+      <div className="bg-white p-4 rounded-xl border space-y-3">
+        <label className="flex items-center gap-3 p-3 bg-slate-50 rounded border">
+          <input type="checkbox" checked={criticalChecks.ppeRemoved} onChange={() => setCriticalChecks({...criticalChecks, ppeRemoved: !criticalChecks.ppeRemoved})} className="w-5 h-5"/>
+          <span className="text-sm">Remove PPE & Hand Hygiene</span>
+        </label>
+        <label className="flex items-center gap-3 p-3 bg-slate-50 rounded border">
+          <input type="checkbox" className="w-5 h-5"/>
+          <span className="text-sm">Flush line with NS</span>
+        </label>
+        <label className="flex items-center gap-3 p-3 bg-slate-50 rounded border">
+          <input type="checkbox" className="w-5 h-5"/>
+          <span className="text-sm flex items-center gap-2">Discard Bag in Biohazard <Trash2 size={14}/></span>
+        </label>
+      </div>
+
+      <div className="bg-white p-4 rounded-xl border space-y-4">
+        <div>
+          <label className="block text-xs font-bold text-slate-500 mb-1">Total Volume Infused (mL)</label>
+          <input type="number" placeholder="e.g. 350" className="w-full p-3 border rounded text-lg font-mono" value={volumeInfused} onChange={e=>setVolumeInfused(e.target.value)}/>
+        </div>
+        
+        <div>
+           <label className="block text-xs font-bold text-slate-500 mb-1">Post-Transfusion Temp (F)</label>
+           <div className="flex items-center gap-2">
+              <Thermometer size={18} className="text-blue-500" />
+              <div className="flex-1 flex flex-col">
+                 <div className="flex justify-between items-center mb-1">
+                    <span className="text-blue-600 font-bold">{endVitals.temp}°F</span>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Normal Range</span>
+                 </div>
+                 <input 
+                   type="range" 
+                   min="96.0" 
+                   max="104.0" 
+                   step="0.1" 
+                   value={endVitals.temp}
+                   onChange={(e) => setEndVitals({...endVitals, temp: e.target.value})}
+                   className="w-full accent-blue-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                 />
+              </div>
+              <span className="text-xs text-slate-400 ml-2 w-16 leading-tight text-right">(Required within 15 min)</span>
+           </div>
+        </div>
+        
+        <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-100 rounded text-xs text-yellow-800">
+           <Timer size={14} />
+           <label className="flex items-center gap-2 cursor-pointer">
+             <input type="checkbox" checked={criticalChecks.timeLimit} onChange={() => setCriticalChecks({...criticalChecks, timeLimit: !criticalChecks.timeLimit})} />
+             <span>Confim: Infusion completed &lt; 4 hours</span>
+           </label>
+        </div>
+      </div>
+
+      <PrimaryButton disabled={!volumeInfused || !criticalChecks.ppeRemoved || !criticalChecks.timeLimit} onClick={() => setGameState('HEALTHBRIDGE_DOC')}>
+        End in Bridge
+      </PrimaryButton>
+    </div>
+  );
+
+  const renderHealthbridge = () => (
+    <div className="p-6 h-full flex flex-col items-center justify-center text-center">
+       <div className="bg-green-100 p-6 rounded-full mb-4"><Award size={48} className="text-green-600"/></div>
+       <h2 className="text-2xl font-bold text-slate-800">Competency Complete!</h2>
+       <div className="mt-6 bg-slate-50 p-4 rounded-xl text-left text-sm space-y-2 w-full">
+         <div className="flex justify-between"><span>Setup Knowledge:</span> <span className="font-bold text-green-600">Verified</span></div>
+         <div className="flex justify-between"><span>Reaction Protocol:</span> <span className="font-bold text-green-600">Verified</span></div>
+         <div className="flex justify-between"><span>End Protocol:</span> <span className="font-bold text-green-600">Verified</span></div>
+         <div className="flex justify-between"><span>Critical Elements:</span> <span className="font-bold text-green-600">Verified</span></div>
+       </div>
+       <button onClick={() => window.location.reload()} className="mt-8 text-blue-600 font-bold hover:underline">Start New Session</button>
+    </div>
+  );
+
+  // --- Router ---
+  const renderContent = () => {
+    switch(gameState) {
+      case 'HOME_SCREEN': return renderHome();
+      case 'PRE_CHECK': return renderPreCheck();
+      case 'BRIDGE_LOGIN': return renderBridgeLogin();
+      case 'BLOOD_PICKUP': return renderBloodPickup();
+      case 'VITALS_START': return renderVitalsStart();
+      case 'VITALS_INPUT': return renderVitalsInput();
+      case 'SCANNING_BAG': return renderScanningBag();
+      case 'CO_SIGN': return renderCoSign();
+      case 'SETUP_LINE': return renderSetupLine(); // HAS QUIZ 1
+      case 'TRANSFUSING': return renderTransfusing();
+      case 'FIFTEEN_MIN_CHECK': return renderFifteenMinCheck(); // HAS QUIZ 2
+      case 'END_PROTOCOL': return renderEndProtocol(); // HAS QUIZ 3
+      case 'END_PROCEDURE': return renderEndProcedure();
+      case 'HEALTHBRIDGE_DOC': return renderHealthbridge();
+      default: return renderHome();
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-neutral-200 flex items-center justify-center p-4 font-sans select-none">
+      <div className="relative w-full max-w-[380px] bg-slate-900 rounded-[3rem] p-4 shadow-2xl border-4 border-slate-800 ring-1 ring-white/10">
+        <div className="bg-slate-50 w-full h-[680px] rounded-[2rem] overflow-hidden flex flex-col relative">
+          <DeviceHeader title={gameState.replace('_', ' ')} onMapClick={() => setShowMap(true)} />
+          
+          {showMap && (
+             <GameBoard 
+               currentLevel={getCurrentLevel()} 
+               onClose={() => setShowMap(false)} 
+             />
+          )}
+
+          {feedback && <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg z-50 animate-in fade-in slide-in-from-top-2">{feedback}</div>}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 scrollbar-hide relative">
+            {renderContent()}
+          </div>
+          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-300 rounded-full mb-2" />
+        </div>
+        <div className="absolute -right-3 top-32 w-1 h-12 bg-slate-700 rounded-r-md" />
+      </div>
+    </div>
+  );
+}
